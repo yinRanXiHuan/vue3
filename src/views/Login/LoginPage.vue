@@ -1,36 +1,102 @@
 <script setup>
+import { userRegisterService } from '@/api/user'
 import { User, Lock } from '@element-plus/icons-vue'
 import { ref } from 'vue'
 const isRegister = ref(true)
+// 表单数据
+const fonModel = ref({
+  username: '',
+  password: '',
+  repassWord: ''
+})
+// 验证规则
+const rules = {
+  username: [
+    { required: true, message: '请输入用户名', trigger: 'blur' },
+    { min: 3, max: 10, message: '用户名长度必须是5~10位', trigger: 'blur' }
+  ],
+  password: [
+    { required: true, message: '请输入密码', trigger: 'blur' },
+    {
+      pattern: /^\S{6,15}$/,
+      message: '密码长度必须是6~10位非空',
+      trigger: 'blur'
+    }
+  ],
+  repassWord: [
+    { required: true, message: '请输入密码', trigger: 'blur' },
+    {
+      pattern: /^\S{6,15}$/,
+      message: '密码长度必须是6~10位非空',
+      trigger: 'blur'
+    },
+    {
+      validator: (rule, value, callback) => {
+        if (value !== fonModel.value.password) {
+          callback(new Error('两次输入的密码不一致'))
+        } else {
+          callback()
+        }
+      },
+      trigger: 'blur'
+    }
+  ]
+}
+// 表单验证
+const form = ref()
+const register = async () => {
+  await form.value.validate()
+  await userRegisterService(fonModel.value)
+  ElMessage.success('注册成功')
+  // isRegister.value = false
+}
 </script>
 
 <template>
   <el-row class="login-page">
     <el-col :span="12" class="bg"></el-col>
     <el-col :span="6" :offset="3" class="form">
-      <el-form ref="form" size="large" autocomplete="off" v-if="isRegister">
+      <el-form
+        :model="fonModel"
+        :rules="rules"
+        ref="form"
+        size="large"
+        autocomplete="off"
+        v-if="isRegister"
+      >
         <el-form-item>
           <h1>注册</h1>
         </el-form-item>
-        <el-form-item>
-          <el-input :prefix-icon="User" placeholder="请输入用户名"></el-input>
-        </el-form-item>
-        <el-form-item>
+        <el-form-item prop="username">
           <el-input
+            v-model="fonModel.username"
+            :prefix-icon="User"
+            placeholder="请输入用户名"
+          ></el-input>
+        </el-form-item>
+        <el-form-item prop="password">
+          <el-input
+            v-model="fonModel.password"
             :prefix-icon="Lock"
             type="password"
             placeholder="请输入密码"
           ></el-input>
         </el-form-item>
-        <el-form-item>
+        <el-form-item prop="repassWord">
           <el-input
+            v-model="fonModel.repassWord"
             :prefix-icon="Lock"
             type="password"
             placeholder="请输入再次密码"
           ></el-input>
         </el-form-item>
         <el-form-item>
-          <el-button class="button" type="primary" auto-insert-space>
+          <el-button
+            @click="register"
+            class="button"
+            type="primary"
+            auto-insert-space
+          >
             注册
           </el-button>
         </el-form-item>
@@ -80,6 +146,8 @@ const isRegister = ref(true)
 .login-page {
   height: 100vh;
   background-color: #fff;
+  width: 100vw;
+  margin-left: -9vw;
 
   .bg {
     background:
