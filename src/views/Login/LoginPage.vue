@@ -1,8 +1,12 @@
 <script setup>
-import { userRegisterService } from '@/api/user'
+import { userRegisterService, userLoginService } from '@/api/user'
 import { User, Lock } from '@element-plus/icons-vue'
-import { ref } from 'vue'
-const isRegister = ref(true)
+import { ref, watch } from 'vue'
+import { ElMessage } from 'element-plus'
+import { useUserStore } from '@/stores'
+import { useRouter } from 'vue-router'
+
+const isRegister = ref(false)
 // 表单数据
 const fonModel = ref({
   username: '',
@@ -13,17 +17,18 @@ const fonModel = ref({
 const rules = {
   username: [
     { required: true, message: '请输入用户名', trigger: 'blur' },
-    { min: 3, max: 10, message: '用户名长度必须是5~10位', trigger: 'blur' }
+    { min: 5, max: 10, message: '用户名必须是 5-10位 的字符', trigger: 'blur' }
   ],
   password: [
     { required: true, message: '请输入密码', trigger: 'blur' },
     {
       pattern: /^\S{6,15}$/,
-      message: '密码长度必须是6~10位非空',
+      message: '密码必须是 6-15位 的非空字符',
       trigger: 'blur'
     }
   ],
   repassWord: [
+    //trigger 触发验 blur 失去焦点
     { required: true, message: '请输入密码', trigger: 'blur' },
     {
       pattern: /^\S{6,15}$/,
@@ -44,12 +49,36 @@ const rules = {
 }
 // 表单验证
 const form = ref()
+// 注册请求
 const register = async () => {
   await form.value.validate()
   await userRegisterService(fonModel.value)
   ElMessage.success('注册成功')
-  // isRegister.value = false
+  isRegister.value = false
 }
+// 引入store
+const userStore = useUserStore()
+const router = useRouter()
+// 登录请求
+const login = async () => {
+  await form.value.validate()
+  const res = await userLoginService(fonModel.value)
+  userStore.setToken(res.data.token)
+  ElMessage.success('登录成功')
+
+  // console.log(router);
+  // console.log(route);
+  router.push('/')
+  // route.base('/')
+}
+// 重置表单
+watch(isRegister, () => {
+  fonModel.value = {
+    username: '',
+    password: '',
+    repassWord: ''
+  }
+})
 </script>
 
 <template>
@@ -106,15 +135,27 @@ const register = async () => {
           </el-link>
         </el-form-item>
       </el-form>
-      <el-form ref="form" size="large" autocomplete="off" v-else>
+      <el-form
+        :model="fonModel"
+        :rules="rules"
+        ref="form"
+        size="large"
+        autocomplete="off"
+        v-else
+      >
         <el-form-item>
           <h1>登录</h1>
         </el-form-item>
-        <el-form-item>
-          <el-input :prefix-icon="User" placeholder="请输入用户名"></el-input>
-        </el-form-item>
-        <el-form-item>
+        <el-form-item prop="username">
           <el-input
+            v-model="fonModel.username"
+            :prefix-icon="User"
+            placeholder="请输入用户名"
+          ></el-input>
+        </el-form-item>
+        <el-form-item prop="password">
+          <el-input
+            v-model="fonModel.password"
             name="password"
             :prefix-icon="Lock"
             type="password"
@@ -128,7 +169,11 @@ const register = async () => {
           </div>
         </el-form-item>
         <el-form-item>
-          <el-button class="button" type="primary" auto-insert-space
+          <el-button
+            class="button"
+            type="primary"
+            @click="login"
+            auto-insert-space
             >登录</el-button
           >
         </el-form-item>
